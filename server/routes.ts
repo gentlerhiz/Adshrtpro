@@ -1043,7 +1043,7 @@ export async function registerRoutes(
     res.json(enabled.map(s => ({ network: s.network, isEnabled: s.isEnabled })));
   });
 
-  // Get AdBlueMedia offers (proxy to avoid CORS)
+  // Get AdBlueMedia offers (proxy to avoid CORS) - with geo-location targeting
   app.get("/api/offerwalls/adbluemedia/offers", requireAuth, async (req, res) => {
     try {
       const { userId } = req.query;
@@ -1056,7 +1056,12 @@ export async function registerRoutes(
         return res.json([]);
       }
 
-      const feedUrl = `https://d2xohqmdyl2cj3.cloudfront.net/public/offers/feed.php?user_id=518705&api_key=f24063d0d801e4daa846e9da4454c467&s1=${userId}&s2=`;
+      // Get user's IP for geo-targeting
+      const userIp = req.headers["x-forwarded-for"] || req.headers["x-real-ip"] || req.socket.remoteAddress || "";
+      const clientIp = Array.isArray(userIp) ? userIp[0] : userIp.split(",")[0].trim();
+
+      // AdBlueMedia API with IP parameter for geo-targeting
+      const feedUrl = `https://d2xohqmdyl2cj3.cloudfront.net/public/offers/feed.php?user_id=518705&api_key=f24063d0d801e4daa846e9da4454c467&s1=${userId}&s2=&ip=${encodeURIComponent(clientIp)}`;
       
       const response = await fetch(feedUrl);
       if (!response.ok) {
@@ -1064,7 +1069,15 @@ export async function registerRoutes(
       }
       
       const offers = await response.json();
-      res.json(Array.isArray(offers) ? offers : []);
+      
+      // Apply 50% revenue split - show users their actual earnings
+      const adjustedOffers = (Array.isArray(offers) ? offers : []).map((offer: any) => ({
+        ...offer,
+        payout: (parseFloat(offer.payout || "0") * 0.5).toFixed(2), // User sees 50% of payout
+        original_payout: offer.payout, // Keep original for reference
+      }));
+      
+      res.json(adjustedOffers);
     } catch (error) {
       console.error("AdBlueMedia offers fetch error:", error);
       res.status(500).json({ message: "Failed to fetch offers" });
@@ -1112,11 +1125,16 @@ export async function registerRoutes(
       return res.status(400).send("0");
     }
 
-    // Record completion and credit balance
-    await storage.recordOfferwallCompletion(userId, "cpagrip", offerId, txId, payoutAmount, clientIp);
-    await storage.creditBalance(userId, payoutAmount, "offerwall", `CPAGrip offer: ${offerId}`, "cpagrip", offerId, clientIp);
+    // Apply 50:50 revenue split
+    const netPayout = parseFloat(payoutAmount);
+    const userReward = (netPayout * 0.5).toFixed(6); // 50% to user
+    const platformShare = (netPayout * 0.5).toFixed(6); // 50% to platform
 
-    console.log("CPAGrip credited:", { userId, offerId, payoutAmount });
+    // Record completion with original payout and credit user with 50%
+    await storage.recordOfferwallCompletion(userId, "cpagrip", offerId, txId, payoutAmount, clientIp);
+    await storage.creditBalance(userId, userReward, "offerwall", `CPAGrip offer: ${offerId}`, "cpagrip", offerId, clientIp);
+
+    console.log("CPAGrip credited (50:50 split):", { userId, offerId, netPayout: payoutAmount, userReward, platformShare });
     res.status(200).send("1");
   });
 
@@ -1161,11 +1179,16 @@ export async function registerRoutes(
       return res.status(400).send("0");
     }
 
-    // Record completion and credit balance
-    await storage.recordOfferwallCompletion(userId, "adbluemedia", offerId, txId, payoutAmount, clientIp);
-    await storage.creditBalance(userId, payoutAmount, "offerwall", `AdBlueMedia offer: ${offerId}`, "adbluemedia", offerId, clientIp);
+    // Apply 50:50 revenue split
+    const netPayout = parseFloat(payoutAmount);
+    const userReward = (netPayout * 0.5).toFixed(6); // 50% to user
+    const platformShare = (netPayout * 0.5).toFixed(6); // 50% to platform
 
-    console.log("AdBlueMedia credited:", { userId, offerId, payoutAmount });
+    // Record completion with original payout and credit user with 50%
+    await storage.recordOfferwallCompletion(userId, "adbluemedia", offerId, txId, payoutAmount, clientIp);
+    await storage.creditBalance(userId, userReward, "offerwall", `AdBlueMedia offer: ${offerId}`, "adbluemedia", offerId, clientIp);
+
+    console.log("AdBlueMedia credited (50:50 split):", { userId, offerId, netPayout: payoutAmount, userReward, platformShare });
     res.status(200).send("1");
   });
 
