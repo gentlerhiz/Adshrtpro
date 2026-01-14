@@ -49,7 +49,12 @@ import {
   DollarSign,
 } from "lucide-react";
 import { format } from "date-fns";
-import type { Task, TaskSubmission, WithdrawalRequest, Referral } from "@shared/schema";
+import type { Task, TaskSubmission, WithdrawalRequest, Referral, SocialVerification } from "@shared/schema";
+import { Shield } from "lucide-react";
+
+interface EnrichedSocialVerification extends SocialVerification {
+  userEmail?: string;
+}
 
 export default function AdminEarningPage() {
   const { user } = useAuth();
@@ -85,6 +90,11 @@ export default function AdminEarningPage() {
 
   const { data: referrals, isLoading: referralsLoading } = useQuery<Referral[]>({
     queryKey: ["/api/admin/referrals"],
+    enabled: !!user?.isAdmin,
+  });
+
+  const { data: socialVerifications, isLoading: socialVerificationsLoading } = useQuery<EnrichedSocialVerification[]>({
+    queryKey: ["/api/admin/social-verifications"],
     enabled: !!user?.isAdmin,
   });
 
@@ -168,6 +178,19 @@ export default function AdminEarningPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/referrals"] });
       toast({ title: "Referral validated" });
+    },
+  });
+
+  const reviewSocialVerificationMutation = useMutation({
+    mutationFn: async ({ id, status, adminNotes }: { id: string; status: string; adminNotes?: string }) => {
+      await apiRequest("PATCH", `/api/admin/social-verifications/${id}`, { status, adminNotes });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/social-verifications"] });
+      toast({ title: "Social verification reviewed" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Review failed", description: error.message, variant: "destructive" });
     },
   });
 
@@ -296,10 +319,14 @@ export default function AdminEarningPage() {
         </div>
 
         <Tabs defaultValue="tasks">
-          <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5 mb-6">
+          <TabsList className="grid w-full grid-cols-3 lg:grid-cols-6 mb-6">
             <TabsTrigger value="tasks" data-testid="tab-admin-tasks">Tasks</TabsTrigger>
             <TabsTrigger value="submissions" data-testid="tab-admin-submissions">
               Submissions {pendingSubmissions.length > 0 && <Badge variant="destructive" className="ml-2">{pendingSubmissions.length}</Badge>}
+            </TabsTrigger>
+            <TabsTrigger value="social" data-testid="tab-admin-social">
+              <Shield className="w-3 h-3 mr-1" />
+              Social {socialVerifications?.filter(s => s.status === "pending").length ? <Badge variant="destructive" className="ml-2">{socialVerifications.filter(s => s.status === "pending").length}</Badge> : null}
             </TabsTrigger>
             <TabsTrigger value="withdrawals" data-testid="tab-admin-withdrawals">
               Withdrawals {pendingWithdrawals.length > 0 && <Badge variant="destructive" className="ml-2">{pendingWithdrawals.length}</Badge>}
@@ -477,6 +504,113 @@ export default function AdminEarningPage() {
                   <div className="text-center py-12">
                     <ClipboardList className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                     <p className="text-muted-foreground">No submissions yet</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="social">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Shield className="w-5 h-5" />
+                  Social Verification Submissions
+                </CardTitle>
+                <CardDescription>
+                  Review screenshot proofs of users following your social media pages
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {socialVerificationsLoading ? (
+                  <Skeleton className="h-64" />
+                ) : socialVerifications && socialVerifications.length > 0 ? (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>User</TableHead>
+                        <TableHead>Screenshot Links</TableHead>
+                        <TableHead>Submitted</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {socialVerifications.map((sv) => (
+                        <TableRow key={sv.id}>
+                          <TableCell className="font-medium">{sv.userEmail}</TableCell>
+                          <TableCell>
+                            <div className="max-w-xs">
+                              {sv.screenshotLinks.split(",").map((link, idx) => (
+                                <a
+                                  key={idx}
+                                  href={link.trim()}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-primary hover:underline text-sm block truncate"
+                                >
+                                  {link.trim()}
+                                </a>
+                              ))}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            {sv.submittedAt && format(new Date(sv.submittedAt), "MMM d, yyyy HH:mm")}
+                          </TableCell>
+                          <TableCell>
+                            {sv.status === "pending" && (
+                              <Badge variant="secondary">Pending</Badge>
+                            )}
+                            {sv.status === "approved" && (
+                              <Badge variant="default" className="bg-green-600">Approved</Badge>
+                            )}
+                            {sv.status === "rejected" && (
+                              <Badge variant="destructive">Rejected</Badge>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {sv.status === "pending" && (
+                              <div className="flex items-center justify-end gap-2">
+                                <Button
+                                  size="sm"
+                                  variant="default"
+                                  className="bg-green-600 hover:bg-green-700"
+                                  onClick={() =>
+                                    reviewSocialVerificationMutation.mutate({
+                                      id: sv.id,
+                                      status: "approved",
+                                    })
+                                  }
+                                  disabled={reviewSocialVerificationMutation.isPending}
+                                  data-testid={`button-approve-social-${sv.id}`}
+                                >
+                                  <Check className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  onClick={() =>
+                                    reviewSocialVerificationMutation.mutate({
+                                      id: sv.id,
+                                      status: "rejected",
+                                      adminNotes: "Insufficient proof provided",
+                                    })
+                                  }
+                                  disabled={reviewSocialVerificationMutation.isPending}
+                                  data-testid={`button-reject-social-${sv.id}`}
+                                >
+                                  <X className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    No social verification submissions yet.
                   </div>
                 )}
               </CardContent>
