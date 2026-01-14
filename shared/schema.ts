@@ -443,3 +443,16 @@ export const earningSettings = pgTable("earning_settings", {
 });
 
 export type EarningSetting = typeof earningSettings.$inferSelect;
+
+// Social Verification submissions table
+export const socialVerifications = pgTable("social_verifications", {
+  id: varchar("id", { length: 36 }).primaryKey(),
+  userId: varchar("user_id", { length: 36 }).notNull().unique(),
+  screenshotLinks: text("screenshot_links").notNull(),
+  status: text("status").default("pending"), // pending, approved, rejected
+  adminNotes: text("admin_notes"),
+  submittedAt: timestamp("submitted_at").defaultNow(),
+  reviewedAt: timestamp("reviewed_at"),
+});
+
+export type SocialVerification = typeof socialVerifications.$inferSelect;

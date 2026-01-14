@@ -29,6 +29,7 @@ import {
   type WithdrawalRequest,
   type OfferwallSetting,
   type EarningSetting,
+  type SocialVerification,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import bcrypt from "bcryptjs";
@@ -169,6 +170,12 @@ export interface IStorage {
   updateReferral(id: string, data: Partial<Referral>): Promise<Referral | undefined>;
   getUserByReferralCode(code: string): Promise<User | undefined>;
 
+  // Social Verification
+  getSocialVerification(userId: string): Promise<SocialVerification | undefined>;
+  getAllSocialVerifications(): Promise<SocialVerification[]>;
+  createSocialVerification(userId: string, screenshotLinks: string): Promise<SocialVerification>;
+  updateSocialVerification(id: string, data: Partial<SocialVerification>): Promise<SocialVerification | undefined>;
+
   // Withdrawal Requests
   getWithdrawalRequest(id: string): Promise<WithdrawalRequest | undefined>;
   getWithdrawalRequestsByUser(userId: string): Promise<WithdrawalRequest[]>;
@@ -208,6 +215,7 @@ export class MemStorage implements IStorage {
   private tasks: Map<string, Task>;
   private taskSubmissions: Map<string, TaskSubmission>;
   private referrals: Map<string, Referral>;
+  private socialVerifications: Map<string, SocialVerification>;
   private withdrawalRequests: Map<string, WithdrawalRequest>;
   private offerwallSettings: Map<string, OfferwallSetting>;
   private earningSettings: Map<string, string>;
@@ -232,6 +240,7 @@ export class MemStorage implements IStorage {
     this.tasks = new Map();
     this.taskSubmissions = new Map();
     this.referrals = new Map();
+    this.socialVerifications = new Map();
     this.withdrawalRequests = new Map();
     this.offerwallSettings = new Map();
     this.earningSettings = new Map();
@@ -1417,6 +1426,44 @@ export class MemStorage implements IStorage {
   async getUserByReferralCode(code: string): Promise<User | undefined> {
     return Array.from(this.users.values())
       .find((u) => u.referralCode === code);
+  }
+
+  // Social Verification
+  async getSocialVerification(userId: string): Promise<SocialVerification | undefined> {
+    return Array.from(this.socialVerifications.values())
+      .find((sv) => sv.userId === userId);
+  }
+
+  async getAllSocialVerifications(): Promise<SocialVerification[]> {
+    return Array.from(this.socialVerifications.values())
+      .sort((a, b) => {
+        const dateA = a.submittedAt ? new Date(a.submittedAt).getTime() : 0;
+        const dateB = b.submittedAt ? new Date(b.submittedAt).getTime() : 0;
+        return dateB - dateA;
+      });
+  }
+
+  async createSocialVerification(userId: string, screenshotLinks: string): Promise<SocialVerification> {
+    const id = randomUUID();
+    const sv: SocialVerification = {
+      id,
+      userId,
+      screenshotLinks,
+      status: "pending",
+      adminNotes: null,
+      submittedAt: new Date(),
+      reviewedAt: null,
+    };
+    this.socialVerifications.set(id, sv);
+    return sv;
+  }
+
+  async updateSocialVerification(id: string, data: Partial<SocialVerification>): Promise<SocialVerification | undefined> {
+    const sv = this.socialVerifications.get(id);
+    if (!sv) return undefined;
+    const updated = { ...sv, ...data };
+    this.socialVerifications.set(id, updated);
+    return updated;
   }
 
   // Withdrawal Requests

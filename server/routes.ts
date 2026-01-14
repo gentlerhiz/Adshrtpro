@@ -1274,6 +1274,42 @@ export async function registerRoutes(
     res.status(200).send("1");
   });
 
+  // ==================== SOCIAL VERIFICATION ====================
+
+  // Get user's social verification status
+  app.get("/api/social-verification", requireAuth, async (req, res) => {
+    const userId = req.session.userId!;
+    const user = await storage.getUser(userId);
+    const verification = await storage.getSocialVerification(userId);
+    
+    res.json({
+      isVerified: user?.socialVerified ?? false,
+      verifiedAt: user?.socialVerifiedAt ?? null,
+      submission: verification ?? null,
+    });
+  });
+
+  // Submit social verification
+  app.post("/api/social-verification/submit", requireAuth, async (req, res) => {
+    const userId = req.session.userId!;
+    const { screenshotLinks } = req.body;
+    
+    // Check if already submitted
+    const existing = await storage.getSocialVerification(userId);
+    if (existing) {
+      return res.status(400).json({ message: "You have already submitted social verification" });
+    }
+    
+    // Validate screenshot links
+    const trimmedLinks = screenshotLinks?.trim();
+    if (!trimmedLinks) {
+      return res.status(400).json({ message: "Screenshot proof links are required" });
+    }
+    
+    const verification = await storage.createSocialVerification(userId, trimmedLinks);
+    res.json({ message: "Social verification submitted for review", verification });
+  });
+
   // ==================== TASKS ====================
 
   // Get active tasks for users
@@ -1828,6 +1864,61 @@ export async function registerRoutes(
     }
 
     res.json({ message: `Submission ${status}` });
+  });
+
+  // ==================== ADMIN: SOCIAL VERIFICATION ====================
+
+  // Admin: Get all social verification submissions
+  app.get("/api/admin/social-verifications", requireAdmin, async (req, res) => {
+    const verifications = await storage.getAllSocialVerifications();
+    
+    // Enrich with user info
+    const enriched = await Promise.all(verifications.map(async (v) => {
+      const user = await storage.getUser(v.userId);
+      return {
+        ...v,
+        userEmail: user?.email,
+      };
+    }));
+    
+    res.json(enriched);
+  });
+
+  // Admin: Review social verification
+  app.patch("/api/admin/social-verifications/:id", requireAdmin, async (req, res) => {
+    const { status, adminNotes } = req.body;
+    
+    if (!["approved", "rejected"].includes(status)) {
+      return res.status(400).json({ message: "Invalid status" });
+    }
+    
+    const verifications = await storage.getAllSocialVerifications();
+    const verification = verifications.find(v => v.id === req.params.id);
+    
+    if (!verification) {
+      return res.status(404).json({ message: "Verification not found" });
+    }
+    
+    if (verification.status !== "pending") {
+      return res.status(400).json({ message: "Verification already processed" });
+    }
+    
+    // Update verification status
+    await storage.updateSocialVerification(req.params.id, {
+      status,
+      adminNotes: adminNotes || null,
+      reviewedAt: new Date(),
+    });
+    
+    // If approved, update user's socialVerified status
+    if (status === "approved") {
+      await storage.updateUser(verification.userId, {
+        socialVerified: true,
+        socialVerifiedAt: new Date(),
+      });
+    }
+    
+    res.json({ message: `Social verification ${status}` });
   });
 
   // Admin: Get all referrals

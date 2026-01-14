@@ -7,11 +7,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { ClipboardList, CheckCircle, Clock, XCircle, Upload, Link as LinkIcon, User, ExternalLink, FileText, Image } from "lucide-react";
+import { ClipboardList, CheckCircle, Clock, XCircle, Upload, Link as LinkIcon, User, ExternalLink, FileText, Image, Users, Shield, AlertTriangle } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { Link } from "wouter";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 function makeLinksClickable(text: string) {
   const urlRegex = /(https?:\/\/[^\s]+)/g;
@@ -53,6 +54,18 @@ interface Task {
   };
 }
 
+interface SocialVerificationData {
+  isVerified: boolean;
+  verifiedAt: string | null;
+  submission: {
+    id: string;
+    status: string;
+    screenshotLinks: string;
+    adminNotes: string | null;
+    submittedAt: string;
+  } | null;
+}
+
 export default function TasksPage() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -61,10 +74,32 @@ export default function TasksPage() {
   const [proofText, setProofText] = useState("");
   const [screenshotLinks, setScreenshotLinks] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [socialProofLinks, setSocialProofLinks] = useState("");
+  const [socialDialogOpen, setSocialDialogOpen] = useState(false);
 
   const { data: tasks = [], isLoading } = useQuery<Task[]>({
     queryKey: ["/api/tasks"],
     enabled: !!user,
+  });
+
+  const { data: socialVerification } = useQuery<SocialVerificationData>({
+    queryKey: ["/api/social-verification"],
+    enabled: !!user,
+  });
+
+  const socialSubmitMutation = useMutation({
+    mutationFn: async (screenshotLinks: string) => {
+      await apiRequest("POST", "/api/social-verification/submit", { screenshotLinks });
+    },
+    onSuccess: () => {
+      toast({ title: "Submitted!", description: "Your social verification is pending review." });
+      queryClient.invalidateQueries({ queryKey: ["/api/social-verification"] });
+      setSocialDialogOpen(false);
+      setSocialProofLinks("");
+    },
+    onError: (error: Error) => {
+      toast({ title: "Submission failed", description: error.message, variant: "destructive" });
+    },
   });
 
   const submitMutation = useMutation({
@@ -137,6 +172,23 @@ export default function TasksPage() {
     }
   };
 
+  const getSocialStatusBadge = () => {
+    if (socialVerification?.isVerified) {
+      return <Badge variant="default" className="bg-green-600"><CheckCircle className="w-3 h-3 mr-1" />Verified</Badge>;
+    }
+    if (socialVerification?.submission) {
+      switch (socialVerification.submission.status) {
+        case "pending":
+          return <Badge variant="secondary"><Clock className="w-3 h-3 mr-1" />Pending Review</Badge>;
+        case "rejected":
+          return <Badge variant="destructive"><XCircle className="w-3 h-3 mr-1" />Rejected</Badge>;
+        default:
+          return null;
+      }
+    }
+    return <Badge variant="outline"><AlertTriangle className="w-3 h-3 mr-1" />Not Verified</Badge>;
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
@@ -146,6 +198,132 @@ export default function TasksPage() {
         <h1 className="text-3xl font-bold mb-2">Tasks</h1>
         <p className="text-muted-foreground">Complete tasks and submit proof to earn rewards.</p>
       </div>
+
+      {/* Social Verification Task */}
+      <Card className="mb-6 border-primary/30 bg-primary/5">
+        <CardHeader>
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+                <Shield className="w-5 h-5 text-primary" />
+              </div>
+              <div>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  Social Verification
+                  <Badge variant="outline" className="text-xs">Required for Referral Rewards</Badge>
+                </CardTitle>
+                <CardDescription>Follow our official social media pages to unlock referral rewards</CardDescription>
+              </div>
+            </div>
+            <div className="flex flex-col items-end gap-2">
+              {getSocialStatusBadge()}
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <Alert>
+              <Users className="h-4 w-4" />
+              <AlertDescription>
+                <strong>How it works:</strong> Both you and your referral must complete Social Verification to earn referral rewards ($0.10 each). 
+                Your referral must also create at least 3 shortened links.
+              </AlertDescription>
+            </Alert>
+
+            <div className="p-3 bg-muted rounded-lg">
+              <p className="text-sm font-medium mb-2">Instructions:</p>
+              <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside">
+                <li>Follow our official social media pages (Telegram, Facebook, Twitter/X, Instagram, etc.)</li>
+                <li>Visit our <Link href="/socials" className="text-primary hover:underline">Socials page</Link> to find all official accounts</li>
+                <li>Take screenshots showing you follow each account</li>
+                <li>Upload screenshots to <a href="https://imgbb.com" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">imgbb.com</a> or <a href="https://postimages.org" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">postimages.org</a></li>
+                <li>Submit all screenshot links below (separate multiple links with commas)</li>
+              </ol>
+            </div>
+
+            {socialVerification?.isVerified ? (
+              <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                <div className="flex items-center gap-2 text-green-700 dark:text-green-400">
+                  <CheckCircle className="w-5 h-5" />
+                  <span className="font-medium">You are verified!</span>
+                </div>
+                <p className="text-sm text-muted-foreground mt-1">
+                  You can now earn referral rewards when you invite friends.
+                </p>
+              </div>
+            ) : socialVerification?.submission?.status === "pending" ? (
+              <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
+                <div className="flex items-center gap-2 text-yellow-700 dark:text-yellow-400">
+                  <Clock className="w-5 h-5" />
+                  <span className="font-medium">Pending Review</span>
+                </div>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Your submission is being reviewed by our team.
+                </p>
+              </div>
+            ) : socialVerification?.submission?.status === "rejected" ? (
+              <div className="space-y-3">
+                <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
+                  <div className="flex items-center gap-2 text-red-700 dark:text-red-400">
+                    <XCircle className="w-5 h-5" />
+                    <span className="font-medium">Rejected</span>
+                  </div>
+                  {socialVerification.submission.adminNotes && (
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Reason: {socialVerification.submission.adminNotes}
+                    </p>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <Dialog open={socialDialogOpen} onOpenChange={setSocialDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button data-testid="button-social-verify">
+                    <Upload className="w-4 h-4 mr-2" />
+                    Submit Verification
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Social Verification</DialogTitle>
+                    <DialogDescription>
+                      Submit screenshot proof that you follow our official social media pages.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <div>
+                      <Label htmlFor="social-proof">Screenshot Links</Label>
+                      <Textarea
+                        id="social-proof"
+                        placeholder="Paste your screenshot links here, separated by commas"
+                        value={socialProofLinks}
+                        onChange={(e) => setSocialProofLinks(e.target.value)}
+                        className="mt-2"
+                        rows={4}
+                        data-testid="input-social-proof"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Upload to imgbb.com or postimages.org, then paste links here
+                      </p>
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button
+                      onClick={() => socialSubmitMutation.mutate(socialProofLinks)}
+                      disabled={!socialProofLinks.trim() || socialSubmitMutation.isPending}
+                      data-testid="button-submit-social"
+                    >
+                      {socialSubmitMutation.isPending ? "Submitting..." : "Submit"}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      <h2 className="text-xl font-semibold mb-4">Available Tasks</h2>
 
       {isLoading ? (
         <div className="text-center py-8">Loading tasks...</div>
