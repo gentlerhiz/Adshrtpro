@@ -152,6 +152,7 @@ export interface AuthUser {
   analyticsUnlockExpiry: Date | null;
   referralCode: string | null;
   balanceUsd?: string;
+  socialVerified?: boolean;
 }
 
 // Login schema

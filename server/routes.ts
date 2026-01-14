@@ -179,6 +179,7 @@ export async function registerRoutes(
       analyticsUnlockExpiry: user.analyticsUnlockExpiry,
       referralCode: user.referralCode ?? null,
       balanceUsd: balance?.balanceUsd,
+      socialVerified: user.socialVerified ?? false,
     };
     res.json(authUser);
   });
@@ -218,6 +219,7 @@ export async function registerRoutes(
         isAdmin: user.isAdmin ?? false,
         analyticsUnlockExpiry: user.analyticsUnlockExpiry,
         referralCode: user.referralCode ?? null,
+        socialVerified: user.socialVerified ?? false,
       };
       
       // Explicitly save session before responding
@@ -265,6 +267,7 @@ export async function registerRoutes(
         analyticsUnlockExpiry: user.analyticsUnlockExpiry,
         referralCode: user.referralCode ?? null,
         balanceUsd: balance?.balanceUsd,
+        socialVerified: user.socialVerified ?? false,
       };
       
       // Explicitly save session before responding

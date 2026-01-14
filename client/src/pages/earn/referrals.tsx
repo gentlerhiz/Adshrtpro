@@ -3,11 +3,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Users, Copy, CheckCircle, Clock, XCircle, Gift } from "lucide-react";
+import { Users, Copy, CheckCircle, Clock, XCircle, Gift, Shield, AlertCircle } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { Link } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface Referral {
   id: string;
@@ -148,17 +149,55 @@ export default function ReferralsPage() {
         </CardContent>
       </Card>
 
+      <Alert className="mb-6 border-blue-500/50 bg-blue-500/10">
+        <Shield className="h-4 w-4" />
+        <AlertDescription>
+          <strong>Social Verification Required:</strong> Both you and your referral must complete Social Verification to unlock rewards.{" "}
+          {user.socialVerified === true ? (
+            <Badge variant="outline" className="ml-2 border-green-500 text-green-600">
+              <CheckCircle className="w-3 h-3 mr-1" /> You're Verified
+            </Badge>
+          ) : user.socialVerified === false ? (
+            <Link href="/earn/tasks" className="text-primary underline">
+              Complete verification now
+            </Link>
+          ) : null}
+        </AlertDescription>
+      </Alert>
+
       <Card className="mb-8">
         <CardHeader>
           <CardTitle>How It Works</CardTitle>
         </CardHeader>
         <CardContent>
-          <ol className="list-decimal list-inside space-y-2 text-muted-foreground">
-            <li>Share your unique referral link with friends</li>
-            <li>They sign up using your link</li>
-            <li>Once they create {data?.linksRequired || 3} shortened links, the referral becomes valid</li>
-            <li>Admin approves the referral and you receive ${data?.reward || "0.10"}</li>
+          <ol className="list-decimal list-inside space-y-3 text-muted-foreground">
+            <li className="flex items-start gap-2">
+              <span className="font-medium text-foreground">1.</span>
+              <span>Complete <strong>Social Verification</strong> by following our social media accounts and submitting proof</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="font-medium text-foreground">2.</span>
+              <span>Share your unique referral link with friends</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="font-medium text-foreground">3.</span>
+              <span>Your friend signs up and also completes Social Verification</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="font-medium text-foreground">4.</span>
+              <span>Your friend creates at least <strong>{data?.linksRequired || 3} shortened links</strong></span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="font-medium text-foreground">5.</span>
+              <span>Both of you receive <strong>${data?.reward || "0.10"}</strong> reward!</span>
+            </li>
           </ol>
+          <div className="mt-4 p-3 rounded-lg bg-muted/50">
+            <p className="text-sm flex items-center gap-2">
+              <AlertCircle className="h-4 w-4 text-amber-500" />
+              <span>Note: Rewards are credited only after admin validation</span>
+            </p>
+          </div>
         </CardContent>
       </Card>
 
