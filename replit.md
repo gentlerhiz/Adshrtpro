@@ -124,3 +124,11 @@ The app runs on port 5000 using `npm run dev`.
   - Fixed analytics/QR unlock flows with proper query invalidation after mutations
   - Added loading states to logout button to prevent double-triggering
   - Added `isLoggingOut` state to auth context for UI feedback
+- Social Verification System for Referrals:
+  - Users must complete Social Verification (follow official social media + submit screenshot proof) to unlock referral rewards
+  - Both referrer and referee must be socially verified + referee creates 3+ links before both receive $0.10 reward
+  - SocialVerification schema with userId, screenshotLinks, status (pending/approved/rejected), and timestamps
+  - Tasks page features prominent Social Verification task with submission dialog
+  - Admin Earning page has "Social" tab for reviewing verification submissions with approve/reject actions
+  - Referrals page updated with clear requirements showing verification status and step-by-step guide
+  - AuthUser interface extended with socialVerified field returned in all auth responses
