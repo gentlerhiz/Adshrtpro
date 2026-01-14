@@ -8,7 +8,7 @@ interface AuthContextType {
   isLoading: boolean;
   isLoggingOut: boolean;
   login: (email: string, password: string) => Promise<AuthUser>;
-  register: (email: string, password: string) => Promise<AuthUser>;
+  register: (email: string, password: string, telegramUsername?: string) => Promise<AuthUser>;
   logout: () => Promise<void>;
   refetchUser: () => void;
   unlockLinkAnalytics: (linkId: string) => Promise<void>;
@@ -35,8 +35,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   });
 
   const registerMutation = useMutation({
-    mutationFn: async ({ email, password }: { email: string; password: string }) => {
-      const response = await apiRequest("POST", "/api/auth/register", { email, password });
+    mutationFn: async ({ email, password, telegramUsername }: { email: string; password: string; telegramUsername?: string }) => {
+      const response = await apiRequest("POST", "/api/auth/register", { email, password, telegramUsername });
       return response.json() as Promise<AuthUser>;
     },
     onSuccess: (authUser) => {
@@ -69,8 +69,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const authUser = await loginMutation.mutateAsync({ email, password });
           return authUser;
         },
-        register: async (email, password) => {
-          const authUser = await registerMutation.mutateAsync({ email, password });
+        register: async (email, password, telegramUsername) => {
+          const authUser = await registerMutation.mutateAsync({ email, password, telegramUsername });
           return authUser;
         },
         logout: async () => {

@@ -17,11 +17,14 @@ import {
 } from "@/components/ui/form";
 import { Link2, Loader2, Mail, Lock } from "lucide-react";
 import { useState } from "react";
+import { SiTelegram } from "react-icons/si";
+import { FormDescription } from "@/components/ui/form";
 
 const registerSchema = z.object({
   email: z.string().email("Invalid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
   confirmPassword: z.string(),
+  telegramUsername: z.string().optional(),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
   path: ["confirmPassword"],
@@ -30,7 +33,7 @@ const registerSchema = z.object({
 type RegisterInput = z.infer<typeof registerSchema>;
 
 export default function RegisterPage() {
-  const { register } = useAuth();
+  const { register: registerUser } = useAuth();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const [isLoading, setIsLoading] = useState(false);
@@ -41,13 +44,14 @@ export default function RegisterPage() {
       email: "",
       password: "",
       confirmPassword: "",
+      telegramUsername: "",
     },
   });
 
   const onSubmit = async (data: RegisterInput) => {
     setIsLoading(true);
     try {
-      await register(data.email, data.password);
+      await registerUser(data.email, data.password, data.telegramUsername);
       toast({
         title: "Account created!",
         description: "Welcome to AdShrtPro! You can now start shortening links.",
@@ -150,6 +154,34 @@ export default function RegisterPage() {
                           />
                         </div>
                       </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="telegramUsername"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>
+                        Telegram Username
+                        <span className="text-muted-foreground text-xs ml-1">(Optional)</span>
+                      </FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <SiTelegram className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                          <Input
+                            {...field}
+                            placeholder="username"
+                            className="pl-10 h-12"
+                            data-testid="input-telegram"
+                          />
+                        </div>
+                      </FormControl>
+                      <FormDescription className="text-xs">
+                        Used for support and account verification only
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}

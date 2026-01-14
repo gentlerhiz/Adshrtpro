@@ -30,6 +30,9 @@ import TasksPage from "@/pages/earn/tasks";
 import ReferralsPage from "@/pages/earn/referrals";
 import WithdrawPage from "@/pages/earn/withdraw";
 import SocialsPage from "@/pages/socials";
+import ForgotPasswordPage from "@/pages/forgot-password";
+import ResetPasswordPage from "@/pages/reset-password";
+import ProfilePage from "@/pages/profile";
 
 function Router() {
   return (
@@ -37,6 +40,9 @@ function Router() {
       <Route path="/" component={HomePage} />
       <Route path="/login" component={LoginPage} />
       <Route path="/register" component={RegisterPage} />
+      <Route path="/forgot-password" component={ForgotPasswordPage} />
+      <Route path="/reset-password" component={ResetPasswordPage} />
+      <Route path="/profile" component={ProfilePage} />
       <Route path="/verify-email" component={VerifyEmailPage} />
       <Route path="/dashboard" component={DashboardPage} />
       <Route path="/analytics" component={AnalyticsPage} />
