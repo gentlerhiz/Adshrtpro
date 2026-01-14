@@ -68,38 +68,29 @@ export default function AdminEarningPage() {
   });
   const [submissionViewOpen, setSubmissionViewOpen] = useState<TaskSubmission | null>(null);
 
-  if (!user?.isAdmin) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Card className="max-w-md">
-          <CardContent className="pt-6">
-            <p className="text-center text-muted-foreground">
-              You don't have permission to access this page.
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
   const { data: tasks, isLoading: tasksLoading } = useQuery<Task[]>({
     queryKey: ["/api/admin/tasks"],
+    enabled: !!user?.isAdmin,
   });
 
   const { data: submissions, isLoading: submissionsLoading } = useQuery<TaskSubmission[]>({
     queryKey: ["/api/admin/task-submissions"],
+    enabled: !!user?.isAdmin,
   });
 
   const { data: withdrawals, isLoading: withdrawalsLoading } = useQuery<WithdrawalRequest[]>({
     queryKey: ["/api/admin/withdrawals"],
+    enabled: !!user?.isAdmin,
   });
 
   const { data: referrals, isLoading: referralsLoading } = useQuery<Referral[]>({
     queryKey: ["/api/admin/referrals"],
+    enabled: !!user?.isAdmin,
   });
 
   const { data: earningSettings } = useQuery<Record<string, string>>({
     queryKey: ["/api/admin/earning-settings"],
+    enabled: !!user?.isAdmin,
   });
 
   const createTaskMutation = useMutation({
@@ -189,6 +180,20 @@ export default function AdminEarningPage() {
       toast({ title: "Settings saved" });
     },
   });
+
+  if (!user?.isAdmin) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Card className="max-w-md">
+          <CardContent className="pt-6">
+            <p className="text-center text-muted-foreground">
+              You don't have permission to access this page.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   const resetTaskForm = () => {
     setTaskForm({
