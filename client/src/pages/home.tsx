@@ -20,6 +20,10 @@ import {
   Check,
   CheckCircle,
   Wallet,
+  Users,
+  Gift,
+  Layers,
+  DollarSign,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -91,34 +95,49 @@ export default function HomePage() {
 
   const features = [
     {
-      icon: Zap,
-      title: "Lightning Fast",
-      description: "Instant redirects with global edge network distribution.",
+      icon: Link2,
+      title: "URL Shortening",
+      description: "Create short, memorable links with custom aliases. Supports bulk shortening up to 50 URLs at once.",
     },
     {
       icon: BarChart3,
-      title: "Detailed Analytics",
-      description: "Track clicks, countries, devices, browsers, and referrers.",
+      title: "Click Analytics",
+      description: "Track clicks, countries, devices, browsers, and referrers with detailed insights.",
     },
     {
       icon: QrCode,
       title: "QR Code Generator",
-      description: "Create customizable QR codes for your shortened links.",
+      description: "Generate customizable QR codes with colors for any of your shortened links.",
+    },
+    {
+      icon: DollarSign,
+      title: "Earn Rewards",
+      description: "Complete offerwalls, tasks, and surveys to earn real money you can withdraw.",
+    },
+    {
+      icon: Users,
+      title: "Referral Program",
+      description: "Invite friends and earn bonus rewards when they sign up and participate.",
+    },
+    {
+      icon: Wallet,
+      title: "Crypto Withdrawals",
+      description: "Withdraw your earnings via FaucetPay to Bitcoin, Ethereum, Litecoin, and more.",
+    },
+    {
+      icon: Layers,
+      title: "Bulk Import",
+      description: "Import and shorten multiple URLs at once to save time on large campaigns.",
     },
     {
       icon: Shield,
       title: "Secure & Reliable",
-      description: "Enterprise-grade security with 99.9% uptime guarantee.",
+      description: "Enterprise-grade security with password reset, email verification, and 2FA support.",
     },
     {
       icon: Globe,
       title: "No Expiration",
-      description: "Your links stay active forever, no time limits.",
-    },
-    {
-      icon: Link2,
-      title: "Custom Aliases",
-      description: "Create memorable, branded short links.",
+      description: "Your links stay active forever with no time limits or restrictions.",
     },
   ];
 

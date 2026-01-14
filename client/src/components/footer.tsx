@@ -28,13 +28,13 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/blog" className="text-muted-foreground hover:text-foreground transition-colors">
-                  Blog
+                <Link href="/dashboard" className="text-muted-foreground hover:text-foreground transition-colors">
+                  Dashboard
                 </Link>
               </li>
               <li>
-                <Link href="/admin" className="text-muted-foreground hover:text-foreground transition-colors" data-testid="link-admin-login">
-                  Admin Login
+                <Link href="/blog" className="text-muted-foreground hover:text-foreground transition-colors">
+                  Blog
                 </Link>
               </li>
             </ul>
