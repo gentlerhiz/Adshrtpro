@@ -385,6 +385,8 @@ export class MemStorage implements IStorage {
       isBanned: false,
       referralCode,
       referredBy: null,
+      socialVerified: false,
+      socialVerifiedAt: null,
       createdAt: new Date(),
     };
     this.users.set(id, user);

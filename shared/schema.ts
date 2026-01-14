@@ -14,6 +14,8 @@ export const users = pgTable("users", {
   isBanned: boolean("is_banned").default(false),
   referralCode: varchar("referral_code", { length: 10 }).unique(),
   referredBy: varchar("referred_by", { length: 36 }),
+  socialVerified: boolean("social_verified").default(false),
+  socialVerifiedAt: timestamp("social_verified_at"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

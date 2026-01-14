@@ -1833,14 +1833,18 @@ export async function registerRoutes(
   // Admin: Get all referrals
   app.get("/api/admin/referrals", requireAdmin, async (req, res) => {
     const referrals = await storage.getAllReferrals();
-    // Enrich with user info
+    // Enrich with user info including social verification status
     const enriched = await Promise.all(referrals.map(async (r) => {
       const referrer = await storage.getUser(r.referrerId);
       const referred = await storage.getUser(r.referredId);
+      const referredLinks = await storage.getLinksByUserId(r.referredId);
       return {
         ...r,
         referrerEmail: referrer?.email,
         referredEmail: referred?.email,
+        referrerSocialVerified: referrer?.socialVerified ?? false,
+        referredSocialVerified: referred?.socialVerified ?? false,
+        referredLinksCount: referredLinks.length,
       };
     }));
     res.json(enriched);
@@ -1860,7 +1864,28 @@ export async function registerRoutes(
     }
 
     if (isValid) {
-      // Check if referred user has created enough links (query actual link count from storage)
+      // Get both users
+      const referrer = await storage.getUser(referral.referrerId);
+      const referred = await storage.getUser(referral.referredId);
+      
+      if (!referrer || !referred) {
+        return res.status(400).json({ message: "User not found" });
+      }
+      
+      // Check if BOTH users have completed social verification
+      if (!referrer.socialVerified) {
+        return res.status(400).json({ 
+          message: "Referrer has not completed Social Verification" 
+        });
+      }
+      
+      if (!referred.socialVerified) {
+        return res.status(400).json({ 
+          message: "Referred user has not completed Social Verification" 
+        });
+      }
+      
+      // Check if referred user has created enough links
       const linksRequired = parseInt(await storage.getEarningSetting("referralLinksRequired") || "3");
       const referredUserLinks = await storage.getLinksByUserId(referral.referredId);
       const actualLinkCount = referredUserLinks.length;
@@ -1877,12 +1902,23 @@ export async function registerRoutes(
         linksCreated: actualLinkCount 
       });
       
+      // Credit BOTH users with the referral reward
       const rewardAmount = await storage.getEarningSetting("referralReward") || "0.10";
+      
+      // Credit referrer
       await storage.creditBalance(
         referral.referrerId,
         rewardAmount,
         "referral",
-        `Referral reward for user ${referral.referredId}`
+        `Referral reward for inviting user ${referred.email.split("@")[0]}***`
+      );
+      
+      // Credit referred user
+      await storage.creditBalance(
+        referral.referredId,
+        rewardAmount,
+        "referral",
+        `Referral bonus for joining via ${referrer.email.split("@")[0]}***`
       );
       
       await storage.updateReferral(req.params.id, { status: "rewarded" });
@@ -1890,7 +1926,7 @@ export async function registerRoutes(
       await storage.updateReferral(req.params.id, { status: "invalid" });
     }
 
-    res.json({ message: isValid ? "Referral validated and rewarded" : "Referral marked as invalid" });
+    res.json({ message: isValid ? "Referral validated - both users rewarded" : "Referral marked as invalid" });
   });
 
   return httpServer;
