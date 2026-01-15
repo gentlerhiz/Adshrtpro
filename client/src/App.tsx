@@ -8,6 +8,7 @@ import { AuthProvider } from "@/lib/auth-context";
 import { Navigation } from "@/components/navigation";
 import { Footer } from "@/components/footer";
 import { ErrorBoundary } from "@/components/error-boundary";
+import { AnnouncementBanner } from "@/components/announcement-banner";
 import { HelmetProvider } from "react-helmet-async";
 import HomePage from "@/pages/home";
 import LoginPage from "@/pages/login";
@@ -79,6 +80,7 @@ function App() {
               <ErrorBoundary>
                 <div className="min-h-screen flex flex-col">
                   <Navigation />
+                  <AnnouncementBanner />
                   <main className="flex-1">
                     <Router />
                   </main>

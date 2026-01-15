@@ -169,3 +169,8 @@ The app runs on port 5000 using `npm run dev`.
   - View all notifications in table format with target info
   - Delete notifications from admin panel
   - API endpoints: GET/POST/DELETE /api/admin/notifications
+- Rotating Announcements Banner:
+  - Auto-rotating announcements displayed below navigation
+  - Three announcement types: updates (blue), rewards (green), promotions (purple)
+  - Pause on hover, manual navigation dots, dismissible with X button
+  - 5-second rotation interval between announcements
