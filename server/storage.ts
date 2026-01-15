@@ -1179,9 +1179,13 @@ export class MemStorage implements IStorage {
       title: task.title,
       description: task.description,
       instructions: task.instructions || null,
+      requirements: task.requirements || null,
+      proofInstructions: task.proofInstructions || null,
       rewardUsd: task.rewardUsd,
-      proofType: task.proofType,
+      proofType: task.proofType || "screenshot",
       isActive: task.isActive ?? true,
+      maxCompletions: task.maxCompletions ?? null,
+      completedCount: 0,
       createdAt: new Date(),
     };
     this.tasks.set(id, newTask);
@@ -1322,7 +1326,7 @@ export class MemStorage implements IStorage {
 
         // Credit user balance - INSIDE the lock (with rollback on failure)
         try {
-          await this.creditBalance(userId, rewardUsd, "task_completion", `Task: ${taskTitle}`);
+          await this.creditBalance(userId, String(rewardUsd), "task_completion", `Task: ${taskTitle}`);
         } catch (creditError) {
           // Rollback: restore original submission and task count
           this.taskSubmissions.set(submissionId, originalSubmission);

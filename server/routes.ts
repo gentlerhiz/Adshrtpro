@@ -181,9 +181,9 @@ export async function registerRoutes(
       isAdmin: user.isAdmin ?? false,
       analyticsUnlockExpiry: user.analyticsUnlockExpiry,
       referralCode: user.referralCode ?? null,
-      balanceUsd: balance?.balanceUsd,
+      balanceUsd: balance?.balanceUsd || undefined,
       socialVerified: user.socialVerified ?? false,
-      telegramUsername: user.telegramUsername ?? undefined,
+      telegramUsername: user.telegramUsername || undefined,
     };
     res.json(authUser);
   });
@@ -224,7 +224,7 @@ export async function registerRoutes(
         analyticsUnlockExpiry: user.analyticsUnlockExpiry,
         referralCode: user.referralCode ?? null,
         socialVerified: user.socialVerified ?? false,
-        telegramUsername: user.telegramUsername ?? undefined,
+        telegramUsername: user.telegramUsername || undefined,
       };
       
       // Explicitly save session before responding
@@ -271,9 +271,9 @@ export async function registerRoutes(
         isAdmin: user.isAdmin ?? false,
         analyticsUnlockExpiry: user.analyticsUnlockExpiry,
         referralCode: user.referralCode ?? null,
-        balanceUsd: balance?.balanceUsd,
+        balanceUsd: balance?.balanceUsd || undefined,
         socialVerified: user.socialVerified ?? false,
-        telegramUsername: user.telegramUsername ?? undefined,
+        telegramUsername: user.telegramUsername || undefined,
       };
       
       // Explicitly save session before responding
@@ -419,9 +419,9 @@ export async function registerRoutes(
         isAdmin: updatedUser!.isAdmin ?? false,
         analyticsUnlockExpiry: updatedUser!.analyticsUnlockExpiry,
         referralCode: updatedUser!.referralCode ?? null,
-        balanceUsd: balance?.balanceUsd,
+        balanceUsd: balance?.balanceUsd || undefined,
         socialVerified: updatedUser!.socialVerified ?? false,
-        telegramUsername: updatedUser!.telegramUsername ?? undefined,
+        telegramUsername: updatedUser!.telegramUsername || undefined,
       };
 
       res.json(authUser);
