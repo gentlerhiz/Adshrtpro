@@ -469,6 +469,7 @@ export class MemStorage implements IStorage {
       creatorIp: ip ?? null,
       isDisabled: false,
       isBanned: false,
+      expiresAt: insertLink.expiresAt ? new Date(insertLink.expiresAt) : null,
       createdAt: new Date(),
     };
     this.links.set(id, link);
@@ -538,6 +539,14 @@ export class MemStorage implements IStorage {
     const browserCounts = countBy(clicks.map((c) => c.browser));
     const referrerCounts = countBy(clicks.map((c) => c.referrer));
 
+    const dateCounts: { [key: string]: number } = {};
+    clicks.forEach((click) => {
+      if (click.clickedAt) {
+        const date = new Date(click.clickedAt).toISOString().split('T')[0];
+        dateCounts[date] = (dateCounts[date] || 0) + 1;
+      }
+    });
+
     return {
       totalClicks: clicks.length,
       clicksByCountry: Object.entries(countryCounts)
@@ -552,6 +561,9 @@ export class MemStorage implements IStorage {
       clicksByReferrer: Object.entries(referrerCounts)
         .map(([referrer, count]) => ({ referrer, count }))
         .sort((a, b) => b.count - a.count),
+      clicksByDate: Object.entries(dateCounts)
+        .map(([date, count]) => ({ date, count }))
+        .sort((a, b) => a.date.localeCompare(b.date)),
       recentClicks: clicks.slice(0, 20),
     };
   }

@@ -4,6 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AdDisplay } from "@/components/ad-display";
+import { SEO } from "@/components/seo";
+import { EmptyState } from "@/components/empty-state";
 import { BookOpen, Calendar, ArrowRight } from "lucide-react";
 import type { BlogPost } from "@shared/schema";
 import { format } from "date-fns";
@@ -17,6 +19,10 @@ export default function BlogPage() {
 
   return (
     <div className="min-h-screen py-12 px-4">
+      <SEO 
+        title="Blog"
+        description="Tips, tricks, and insights on URL shortening, link management, and digital marketing strategies."
+      />
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-12">
           <Badge variant="secondary" className="mb-4">

@@ -19,6 +19,7 @@ import { Link2, Loader2, Mail, Lock } from "lucide-react";
 import { useState } from "react";
 import { SiTelegram } from "react-icons/si";
 import { FormDescription } from "@/components/ui/form";
+import { SEO } from "@/components/seo";
 
 const registerSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -70,6 +71,10 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center py-12 px-4">
+      <SEO 
+        title="Register"
+        description="Create a free AdShrtPro account to start shortening links, track analytics, and earn rewards."
+      />
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center gap-2 font-heading font-bold text-2xl mb-4">

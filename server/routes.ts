@@ -677,6 +677,10 @@ export async function registerRoutes(
       return res.status(410).send("This link has been disabled");
     }
 
+    if (link.expiresAt && new Date(link.expiresAt) < new Date()) {
+      return res.status(410).send("This link has expired");
+    }
+
     // Record click analytics
     const ua = req.headers["user-agent"] || "";
     const { device, browser } = parseUserAgent(ua);

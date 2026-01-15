@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AdDisplay } from "@/components/ad-display";
+import { SEO } from "@/components/seo";
 import {
   Link2,
   BarChart3,
@@ -141,6 +142,10 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen">
+      <SEO 
+        description="Shorten, track, and optimize your links with powerful analytics, QR code generation, and earn rewards. Free URL shortener with advanced features."
+        keywords="URL shortener, link shortener, analytics, QR codes, link management, earn money, referral program"
+      />
       <section className="py-16 md:py-24 px-4">
         <div className="max-w-4xl mx-auto text-center">
           <Badge variant="secondary" className="mb-4" data-testid="badge-hero">

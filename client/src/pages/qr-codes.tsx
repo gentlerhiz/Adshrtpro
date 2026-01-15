@@ -33,6 +33,7 @@ import {
 } from "lucide-react";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { AdDisplay } from "@/components/ad-display";
+import { SEO } from "@/components/seo";
 import type { Link as LinkType } from "@shared/schema";
 
 interface AdSettings {
@@ -231,6 +232,10 @@ export default function QrCodesPage() {
 
   return (
     <div className="min-h-screen py-8 px-4">
+      <SEO 
+        title="QR Codes"
+        description="Generate and customize QR codes for your shortened links. Download high-quality QR codes with custom colors."
+      />
       <div className="max-w-4xl mx-auto">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
           <div>

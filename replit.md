@@ -145,3 +145,20 @@ The app runs on port 5000 using `npm run dev`.
   - Telegram validation: 5-32 chars, alphanumeric + underscores only
   - Admin panel displays Telegram usernames with search support
   - Used for support and account verification purposes
+- SEO Implementation with react-helmet-async:
+  - SEO component for dynamic page titles and meta descriptions
+  - Added SEO to all major pages: home, dashboard, analytics, blog, earn, login, register, QR codes
+  - Open Graph tags for social media sharing
+- Link Expiration Feature:
+  - Added expiration option to URL shortener (1h, 24h, 7d, 30d, 90d, never)
+  - Server validates expiration on redirect, returns 410 for expired links
+  - Uses date-fns for date calculations
+- Click Trend Graphs:
+  - Analytics page now shows line chart of clicks over time using recharts
+  - Responsive design with proper tooltip formatting
+  - Uses clicksByDate data aggregation
+- PWA Support:
+  - manifest.json with app name, icons, and theme color
+  - Service worker (sw.js) for offline caching
+  - Cache-first strategy for static assets, network-first for API
+  - Apple mobile web app meta tags in index.html

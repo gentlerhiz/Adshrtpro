@@ -64,6 +64,11 @@ import type { Link as LinkType } from "@shared/schema";
 import { format } from "date-fns";
 import { SponsoredCarousel } from "@/components/sponsored-carousel";
 import { AdDisplay } from "@/components/ad-display";
+import { SEO } from "@/components/seo";
+import { EmptyState } from "@/components/empty-state";
+import { Pagination, usePagination } from "@/components/pagination";
+
+const ITEMS_PER_PAGE = 10;
 
 export default function DashboardPage() {
   const { user, isLoading: authLoading } = useAuth();
@@ -84,6 +89,7 @@ export default function DashboardPage() {
     error?: string;
     success: boolean;
   }> | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
 
   const { data: links, isLoading } = useQuery<LinkType[]>({
     queryKey: ["/api/links"],
@@ -212,6 +218,13 @@ export default function DashboardPage() {
       link.originalUrl.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const { totalPages, getPageItems } = usePagination(filteredLinks || [], ITEMS_PER_PAGE);
+  const paginatedLinks = getPageItems(currentPage);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery]);
+
   useEffect(() => {
     if (!authLoading && !user) {
       setLocation("/login");
@@ -232,6 +245,10 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen py-8 px-4">
+      <SEO 
+        title="Dashboard"
+        description="Manage your shortened links, view analytics, and create new short URLs."
+      />
       <div className="max-w-6xl mx-auto">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
           <div>
@@ -313,6 +330,11 @@ export default function DashboardPage() {
                   <Skeleton key={i} className="h-16 w-full" />
                 ))}
               </div>
+            ) : !links || links.length === 0 ? (
+              <EmptyState 
+                type="links" 
+                onAction={() => setShowCreateDialog(true)}
+              />
             ) : filteredLinks && filteredLinks.length > 0 ? (
               <>
                 <div className="hidden md:block">
@@ -327,7 +349,7 @@ export default function DashboardPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredLinks.map((link) => (
+                      {paginatedLinks.map((link) => (
                         <TableRow key={link.id} data-testid={`row-link-${link.id}`}>
                           <TableCell>
                             <a
@@ -404,7 +426,7 @@ export default function DashboardPage() {
                 </div>
 
                 <div className="md:hidden space-y-4">
-                  {filteredLinks.map((link) => (
+                  {paginatedLinks.map((link) => (
                     <Card key={link.id} className="overflow-visible">
                       <CardContent className="p-4">
                         <div className="flex items-start justify-between gap-4 mb-3">
@@ -467,24 +489,26 @@ export default function DashboardPage() {
                     </Card>
                   ))}
                 </div>
+
+                {totalPages > 1 && (
+                  <div className="mt-6">
+                    <Pagination
+                      currentPage={currentPage}
+                      totalPages={totalPages}
+                      onPageChange={setCurrentPage}
+                    />
+                  </div>
+                )}
               </>
             ) : (
               <div className="text-center py-12">
                 <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
-                  <AlertCircle className="w-8 h-8 text-muted-foreground" />
+                  <Search className="w-8 h-8 text-muted-foreground" />
                 </div>
-                <h3 className="font-semibold mb-1">No links found</h3>
-                <p className="text-muted-foreground text-sm mb-4">
-                  {searchQuery
-                    ? "No links match your search."
-                    : "You haven't created any links yet."}
+                <h3 className="font-semibold mb-1">No matching links</h3>
+                <p className="text-muted-foreground text-sm">
+                  No links match your search for "{searchQuery}".
                 </p>
-                {!searchQuery && (
-                  <Button data-testid="button-create-first-link" onClick={() => setShowCreateDialog(true)}>
-                    <Plus className="w-4 h-4 mr-2" />
-                    Create your first link
-                  </Button>
-                )}
               </div>
             )}
           </CardContent>

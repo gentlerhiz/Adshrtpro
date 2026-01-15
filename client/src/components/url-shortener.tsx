@@ -17,15 +17,39 @@ import {
   FormItem,
   FormMessage,
 } from "@/components/ui/form";
-import { Link2, Copy, Check, ExternalLink, Loader2, AlertTriangle } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Link2, Copy, Check, ExternalLink, Loader2, AlertTriangle, Clock } from "lucide-react";
 import type { Link } from "@shared/schema";
+import { addDays, addHours } from "date-fns";
 
 const shortenSchema = z.object({
   originalUrl: z.string().url("Please enter a valid URL"),
   shortCode: z.string().min(3, "At least 3 characters").max(20).optional().or(z.literal("")),
+  expiresAt: z.string().optional(),
 });
 
 type ShortenInput = z.infer<typeof shortenSchema>;
+
+const expirationOptions = [
+  { value: "never", label: "Never expires" },
+  { value: "1h", label: "1 hour" },
+  { value: "24h", label: "24 hours" },
+  { value: "7d", label: "7 days" },
+  { value: "30d", label: "30 days" },
+  { value: "90d", label: "90 days" },
+];
+
+function getExpirationDate(option: string): string | undefined {
+  const now = new Date();
+  switch (option) {
+    case "1h": return addHours(now, 1).toISOString();
+    case "24h": return addHours(now, 24).toISOString();
+    case "7d": return addDays(now, 7).toISOString();
+    case "30d": return addDays(now, 30).toISOString();
+    case "90d": return addDays(now, 90).toISOString();
+    default: return undefined;
+  }
+}
 
 interface ShortenedResult {
   link: Link;
@@ -35,6 +59,8 @@ interface ShortenedResult {
 export function UrlShortener() {
   const { toast } = useToast();
   const [useCustomAlias, setUseCustomAlias] = useState(false);
+  const [useExpiration, setUseExpiration] = useState(false);
+  const [expirationOption, setExpirationOption] = useState("never");
   const [result, setResult] = useState<ShortenedResult | null>(null);
   const [copied, setCopied] = useState(false);
 
@@ -43,14 +69,17 @@ export function UrlShortener() {
     defaultValues: {
       originalUrl: "",
       shortCode: "",
+      expiresAt: "",
     },
   });
 
   const shortenMutation = useMutation({
     mutationFn: async (data: ShortenInput) => {
+      const expiresAt = useExpiration ? getExpirationDate(expirationOption) : undefined;
       const response = await apiRequest("POST", "/api/links", {
         originalUrl: data.originalUrl,
         shortCode: useCustomAlias && data.shortCode ? data.shortCode : undefined,
+        expiresAt,
       });
       return await response.json() as ShortenedResult;
     },
@@ -130,16 +159,29 @@ export function UrlShortener() {
                 </Button>
               </div>
 
-              <div className="flex items-center gap-3 mt-4 pt-4 border-t">
-                <Switch
-                  id="custom-alias"
-                  checked={useCustomAlias}
-                  onCheckedChange={setUseCustomAlias}
-                  data-testid="switch-custom-alias"
-                />
-                <Label htmlFor="custom-alias" className="text-sm text-muted-foreground">
-                  Use custom alias
-                </Label>
+              <div className="flex flex-wrap items-center gap-x-6 gap-y-3 mt-4 pt-4 border-t">
+                <div className="flex items-center gap-3">
+                  <Switch
+                    id="custom-alias"
+                    checked={useCustomAlias}
+                    onCheckedChange={setUseCustomAlias}
+                    data-testid="switch-custom-alias"
+                  />
+                  <Label htmlFor="custom-alias" className="text-sm text-muted-foreground">
+                    Custom alias
+                  </Label>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Switch
+                    id="expiration"
+                    checked={useExpiration}
+                    onCheckedChange={setUseExpiration}
+                    data-testid="switch-expiration"
+                  />
+                  <Label htmlFor="expiration" className="text-sm text-muted-foreground">
+                    Set expiration
+                  </Label>
+                </div>
               </div>
 
               {useCustomAlias && (
@@ -165,6 +207,24 @@ export function UrlShortener() {
                     </FormItem>
                   )}
                 />
+              )}
+
+              {useExpiration && (
+                <div className="mt-3 flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-muted-foreground" />
+                  <Select value={expirationOption} onValueChange={setExpirationOption}>
+                    <SelectTrigger className="w-48" data-testid="select-expiration">
+                      <SelectValue placeholder="Select expiration" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {expirationOptions.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               )}
 
               <div className="flex items-start gap-2 mt-4 p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 rounded-md">

@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/form";
 import { Link2, Loader2, Mail, Lock } from "lucide-react";
 import { useState } from "react";
+import { SEO } from "@/components/seo";
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -54,6 +55,10 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center py-12 px-4">
+      <SEO 
+        title="Login"
+        description="Sign in to your AdShrtPro account to manage your links and view analytics."
+      />
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center gap-2 font-heading font-bold text-2xl mb-4">

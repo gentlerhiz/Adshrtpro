@@ -62,6 +62,7 @@ export const links = pgTable("links", {
   creatorIp: text("creator_ip"),
   isDisabled: boolean("is_disabled").default(false),
   isBanned: boolean("is_banned").default(false),
+  expiresAt: timestamp("expires_at"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -71,6 +72,7 @@ export const insertLinkSchema = createInsertSchema(links).pick({
 }).extend({
   originalUrl: z.string().url("Invalid URL"),
   shortCode: z.string().min(3, "Short code must be at least 3 characters").max(20).optional(),
+  expiresAt: z.string().optional(),
 });
 
 export type InsertLink = z.infer<typeof insertLinkSchema>;
@@ -163,6 +165,7 @@ export interface LinkAnalytics {
   clicksByDevice: { device: string; count: number }[];
   clicksByBrowser: { browser: string; count: number }[];
   clicksByReferrer: { referrer: string; count: number }[];
+  clicksByDate: { date: string; count: number }[];
   recentClicks: Click[];
 }
 

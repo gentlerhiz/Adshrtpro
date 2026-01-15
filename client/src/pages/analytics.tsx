@@ -34,8 +34,10 @@ import {
   Play,
 } from "lucide-react";
 import { AdDisplay } from "@/components/ad-display";
+import { SEO } from "@/components/seo";
 import type { Link as LinkType, LinkAnalytics } from "@shared/schema";
 import { format } from "date-fns";
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 
 interface UnlockStatus {
   unlocked: boolean;
@@ -311,6 +313,10 @@ export default function AnalyticsPage() {
 
   return (
     <div className="min-h-screen py-8 px-4">
+      <SEO 
+        title="Analytics"
+        description="Track clicks, countries, devices, and more with detailed link analytics."
+      />
       <div className="max-w-6xl mx-auto">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
           <div>
@@ -451,6 +457,49 @@ export default function AnalyticsPage() {
                     icon={Chrome}
                   />
                 </div>
+
+                {analytics.clicksByDate && analytics.clicksByDate.length > 0 && (
+                  <Card className="mb-8">
+                    <CardHeader>
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        <BarChart3 className="w-5 h-5" />
+                        Click Trends
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="h-64">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <LineChart data={analytics.clicksByDate}>
+                            <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                            <XAxis 
+                              dataKey="date" 
+                              tickFormatter={(value) => format(new Date(value), "MMM d")}
+                              className="text-xs"
+                            />
+                            <YAxis allowDecimals={false} className="text-xs" />
+                            <Tooltip
+                              labelFormatter={(value) => format(new Date(value), "MMM d, yyyy")}
+                              formatter={(value: number) => [value, "Clicks"]}
+                              contentStyle={{
+                                backgroundColor: "hsl(var(--card))",
+                                border: "1px solid hsl(var(--border))",
+                                borderRadius: "8px",
+                              }}
+                            />
+                            <Line
+                              type="monotone"
+                              dataKey="count"
+                              stroke="hsl(var(--primary))"
+                              strokeWidth={2}
+                              dot={{ fill: "hsl(var(--primary))", r: 4 }}
+                              activeDot={{ r: 6 }}
+                            />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <DataList

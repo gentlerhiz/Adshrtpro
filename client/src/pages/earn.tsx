@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Link } from "wouter";
 import { DollarSign, Gift, Users, Wallet, ExternalLink, ClipboardList, ArrowUpRight } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
+import { SEO } from "@/components/seo";
 
 interface UserBalance {
   balanceUsd: string;
@@ -58,6 +59,10 @@ export default function EarnPage() {
 
   return (
     <div className="container mx-auto px-4 py-8">
+      <SEO 
+        title="Earn Rewards"
+        description="Complete offers, tasks, and refer friends to earn real money. Withdraw via cryptocurrency."
+      />
       <div className="mb-8">
         <h1 className="text-3xl font-bold mb-2">Earn Rewards</h1>
         <p className="text-muted-foreground">Complete offers, tasks, and refer friends to earn USD.</p>
