@@ -30,13 +30,5 @@
       "src": "/(.*)",
       "dest": "/client/dist/index.html"
     }
-  ],
-  "env": {
-    "DATABASE_URL": "@database-url",
-    "JWT_SECRET": "@jwt-secret",
-    "JWT_EXPIRES_IN": "7d",
-    "IPINFO_TOKEN": "@ipinfo-token",
-    "BASE_URL": "@base-url",
-    "NODE_ENV": "production"
-  }
+  ]
 }
