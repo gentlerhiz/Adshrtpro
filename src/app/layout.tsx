@@ -26,6 +26,19 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        {/*
+          Runs before first paint and before React hydrates, so the `dark` class
+          is already on <html>. This prevents both the flash of the wrong theme
+          and the hydration mismatch that comes from reading localStorage during
+          render (the server has no way to know the user's stored theme).
+        */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem('theme');if(!t){t=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}if(t==='dark'){document.documentElement.classList.add('dark');}}catch(e){}})();`,
+          }}
+        />
+      </head>
       <body className={inter.className}>
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=G-30LT9GKSFC"

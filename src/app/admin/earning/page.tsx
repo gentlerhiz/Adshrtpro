@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth-context";
 import Link from "next/link";
@@ -50,8 +50,10 @@ import {
   Eye,
   Trash2,
   DollarSign,
+  Download,
 } from "lucide-react";
 import { format } from "date-fns";
+import { maskEmail } from "@/lib/utils";
 import type { Task, TaskSubmission, WithdrawalRequest, Referral, SocialVerification } from "@shared/schema";
 import { Shield } from "lucide-react";
 
@@ -62,8 +64,11 @@ interface EnrichedSocialVerification extends SocialVerification {
 interface EnrichedTaskSubmission extends TaskSubmission {
   taskTitle?: string;
   taskReward?: string;
+  advertiserId?: string | null;
   userEmail?: string;
 }
+
+const ALL = "__all__";
 
 interface EnrichedReferral extends Referral {
   referrerEmail?: string;
@@ -85,10 +90,17 @@ export default function AdminEarningPage() {
     rewardUsd: "",
     requirements: "",
     proofInstructions: "",
+    advertiserId: "",
     maxCompletions: "",
     isActive: true,
   });
   const [submissionViewOpen, setSubmissionViewOpen] = useState<EnrichedTaskSubmission | null>(null);
+  const [submissionFilters, setSubmissionFilters] = useState({
+    task: ALL,
+    advertiser: ALL,
+    user: ALL,
+    status: ALL,
+  });
 
   const { data: tasks, isLoading: tasksLoading } = useQuery<Task[]>({
     queryKey: ["/api/admin/tasks"],
@@ -224,6 +236,45 @@ export default function AdminEarningPage() {
     },
   });
 
+  // These must stay above the permission guard below. Hooks have to run in the
+  // same order on every render, and that guard returns early while `user` is
+  // still resolving - putting hooks after it changes the hook order once the
+  // admin check passes.
+
+  // Distinct filter options, derived from the submissions actually loaded.
+  const submissionFilterOptions = useMemo(() => {
+    const taskMap = new Map<string, string>();
+    const advertisers = new Set<string>();
+    const userMap = new Map<string, string>();
+    const statuses = new Set<string>();
+
+    for (const s of submissions || []) {
+      taskMap.set(s.taskId, s.taskTitle || s.taskId);
+      if (s.advertiserId) advertisers.add(s.advertiserId);
+      userMap.set(s.userId, s.userEmail || s.userId);
+      if (s.status) statuses.add(s.status);
+    }
+
+    return {
+      tasks: Array.from(taskMap, ([id, title]) => ({ id, title }))
+        .sort((a, b) => a.title.localeCompare(b.title)),
+      advertisers: Array.from(advertisers).sort(),
+      users: Array.from(userMap, ([id, email]) => ({ id, email }))
+        .sort((a, b) => a.email.localeCompare(b.email)),
+      statuses: Array.from(statuses).sort(),
+    };
+  }, [submissions]);
+
+  const filteredSubmissions = useMemo(() => {
+    return (submissions || []).filter((s) => {
+      if (submissionFilters.task !== ALL && s.taskId !== submissionFilters.task) return false;
+      if (submissionFilters.advertiser !== ALL && (s.advertiserId || "") !== submissionFilters.advertiser) return false;
+      if (submissionFilters.user !== ALL && s.userId !== submissionFilters.user) return false;
+      if (submissionFilters.status !== ALL && s.status !== submissionFilters.status) return false;
+      return true;
+    });
+  }, [submissions, submissionFilters]);
+
   if (!user?.isAdmin) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -245,6 +296,7 @@ export default function AdminEarningPage() {
       rewardUsd: "",
       requirements: "",
       proofInstructions: "",
+      advertiserId: "",
       maxCompletions: "",
       isActive: true,
     });
@@ -258,6 +310,7 @@ export default function AdminEarningPage() {
       rewardUsd: task.rewardUsd,
       requirements: task.requirements || "",
       proofInstructions: task.proofInstructions || "",
+      advertiserId: task.advertiserId || "",
       maxCompletions: task.maxCompletions?.toString() || "",
       isActive: task.isActive ?? true,
     });
@@ -265,6 +318,66 @@ export default function AdminEarningPage() {
   };
 
   const pendingSubmissions = submissions?.filter(s => s.status === "pending") || [];
+
+  const submissionFiltersActive =
+    Object.values(submissionFilters).some((v) => v !== ALL);
+
+  const exportSubmissionsCsv = () => {
+    // Full submission detail. Emails are masked here only - the on-screen table
+    // shows the real address, but an exported file can be forwarded on.
+    const headers = [
+      "Submission ID",
+      "Task",
+      "Task ID",
+      "Advertiser ID",
+      "Task Reward (USD)",
+      "User",
+      "User ID",
+      "Submitted",
+      "Status",
+      "Reviewed",
+      "Profile/Post Link",
+      "Additional Information",
+      "Screenshot Proof Links",
+      "Legacy Proof Data",
+      "Admin Notes",
+    ];
+    // Wrap every field: proof text and titles can contain commas, quotes and newlines.
+    const escape = (value: string) => `"${value.replace(/"/g, '""')}"`;
+    const date = (d: string | Date | null | undefined) =>
+      d ? format(new Date(d), "yyyy-MM-dd HH:mm") : "";
+
+    const rows = filteredSubmissions.map((s) => [
+      s.id,
+      s.taskTitle || "",
+      s.taskId,
+      s.advertiserId || "",
+      s.taskReward || "",
+      maskEmail(s.userEmail),
+      s.userId,
+      date(s.submittedAt),
+      s.status || "",
+      date(s.reviewedAt),
+      s.proofUrl || "",
+      s.proofText || "",
+      // Normalise the comma-separated list so it stays one readable cell.
+      (s.screenshotLinks || "").split(",").map(l => l.trim()).filter(Boolean).join(" | "),
+      s.proofData || "",
+      s.adminNotes || "",
+    ].map(v => escape(String(v))).join(","));
+
+    const csv = [headers.map(escape).join(","), ...rows].join("\r\n");
+    // BOM so Excel reads UTF-8 correctly.
+    const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `task-submissions-${format(new Date(), "yyyy-MM-dd-HHmm")}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
   const pendingWithdrawals = withdrawals?.filter(w => w.status === "pending") || [];
   const pendingReferrals = referrals?.filter(r => r.status === "pending") || [];
 
@@ -434,17 +547,120 @@ export default function AdminEarningPage() {
           <TabsContent value="submissions">
             <Card>
               <CardHeader>
-                <CardTitle>Task Submissions</CardTitle>
-                <CardDescription>Review and approve user task submissions</CardDescription>
+                <div className="flex items-start justify-between gap-4 flex-wrap">
+                  <div>
+                    <CardTitle>Task Submissions</CardTitle>
+                    <CardDescription>Review and approve user task submissions</CardDescription>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={exportSubmissionsCsv}
+                    disabled={filteredSubmissions.length === 0}
+                    data-testid="button-export-submissions-csv"
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    Export CSV
+                    {filteredSubmissions.length > 0 && ` (${filteredSubmissions.length})`}
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
                 {submissionsLoading ? (
                   <Skeleton className="h-64" />
                 ) : submissions && submissions.length > 0 ? (
+                  <>
+                  <div className="flex flex-wrap items-center gap-2 mb-4">
+                    <Select
+                      value={submissionFilters.task}
+                      onValueChange={(v) => setSubmissionFilters((p) => ({ ...p, task: v }))}
+                    >
+                      <SelectTrigger className="w-[200px]" data-testid="filter-submission-task">
+                        <SelectValue placeholder="All tasks" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={ALL}>All tasks</SelectItem>
+                        {submissionFilterOptions.tasks.map((t) => (
+                          <SelectItem key={t.id} value={t.id}>{t.title}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+
+                    <Select
+                      value={submissionFilters.advertiser}
+                      onValueChange={(v) => setSubmissionFilters((p) => ({ ...p, advertiser: v }))}
+                    >
+                      <SelectTrigger className="w-[180px]" data-testid="filter-submission-advertiser">
+                        <SelectValue placeholder="All advertisers" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={ALL}>All advertisers</SelectItem>
+                        {submissionFilterOptions.advertisers.map((a) => (
+                          <SelectItem key={a} value={a}>{a}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+
+                    <Select
+                      value={submissionFilters.user}
+                      onValueChange={(v) => setSubmissionFilters((p) => ({ ...p, user: v }))}
+                    >
+                      <SelectTrigger className="w-[220px]" data-testid="filter-submission-user">
+                        <SelectValue placeholder="All users" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={ALL}>All users</SelectItem>
+                        {submissionFilterOptions.users.map((u) => (
+                          <SelectItem key={u.id} value={u.id}>{u.email}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+
+                    <Select
+                      value={submissionFilters.status}
+                      onValueChange={(v) => setSubmissionFilters((p) => ({ ...p, status: v }))}
+                    >
+                      <SelectTrigger className="w-[150px]" data-testid="filter-submission-status">
+                        <SelectValue placeholder="All statuses" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={ALL}>All statuses</SelectItem>
+                        {submissionFilterOptions.statuses.map((s) => (
+                          <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+
+                    {submissionFiltersActive && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() =>
+                          setSubmissionFilters({ task: ALL, advertiser: ALL, user: ALL, status: ALL })
+                        }
+                        data-testid="button-clear-submission-filters"
+                      >
+                        <X className="w-4 h-4 mr-1" />
+                        Clear
+                      </Button>
+                    )}
+
+                    <span className="text-sm text-muted-foreground ml-auto">
+                      {filteredSubmissions.length} of {submissions.length}
+                    </span>
+                  </div>
+
+                  {filteredSubmissions.length === 0 ? (
+                    <div className="text-center py-12">
+                      <ClipboardList className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                      <p className="text-muted-foreground">No submissions match these filters</p>
+                    </div>
+                  ) : (
                   <Table>
                     <TableHeader>
                       <TableRow>
                         <TableHead>Task</TableHead>
+                        <TableHead>Advertiser ID</TableHead>
                         <TableHead>User</TableHead>
                         <TableHead>Submitted</TableHead>
                         <TableHead>Status</TableHead>
@@ -452,10 +668,15 @@ export default function AdminEarningPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {submissions.map((submission) => (
+                      {filteredSubmissions.map((submission) => (
                         <TableRow key={submission.id}>
                           <TableCell className="font-medium">
                             {submission.taskTitle || submission.taskId}
+                          </TableCell>
+                          <TableCell className="font-mono text-xs">
+                            {submission.advertiserId || (
+                              <span className="text-muted-foreground">—</span>
+                            )}
                           </TableCell>
                           <TableCell>{submission.userEmail || submission.userId}</TableCell>
                           <TableCell>
@@ -522,6 +743,8 @@ export default function AdminEarningPage() {
                       ))}
                     </TableBody>
                   </Table>
+                  )}
+                  </>
                 ) : (
                   <div className="text-center py-12">
                     <ClipboardList className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
@@ -930,6 +1153,18 @@ export default function AdminEarningPage() {
                   placeholder="0.05"
                   data-testid="input-task-reward"
                 />
+              </div>
+              <div>
+                <Label>Advertiser ID</Label>
+                <Input
+                  value={taskForm.advertiserId}
+                  onChange={(e) => setTaskForm((prev) => ({ ...prev, advertiserId: e.target.value }))}
+                  placeholder="e.g. ADV-1042"
+                  data-testid="input-task-advertiser-id"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Identifies which advertiser this task belongs to. Used to filter submissions.
+                </p>
               </div>
               <div>
                 <Label>Requirements</Label>

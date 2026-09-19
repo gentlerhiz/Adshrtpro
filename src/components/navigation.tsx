@@ -34,7 +34,7 @@ import { NotificationBell } from "@/components/notification-bell";
 
 export function Navigation() {
   const { user, isLoading } = useAuth();
-  const { theme, toggleTheme } = useTheme();
+  const { toggleTheme } = useTheme();
   const { signOut } = useClerk();
   const location = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -102,12 +102,15 @@ export function Navigation() {
             size="icon"
             onClick={toggleTheme}
             data-testid="button-theme-toggle"
+            aria-label="Toggle theme"
           >
-            {theme === "dark" ? (
-              <Sun className="w-5 h-5" />
-            ) : (
-              <Moon className="w-5 h-5" />
-            )}
+            {/*
+              Both icons are always rendered and CSS picks one via the `dark`
+              class on <html>. Branching on `theme` here instead would render
+              differently on the server than on the client and break hydration.
+            */}
+            <Sun className="w-5 h-5 hidden dark:block" />
+            <Moon className="w-5 h-5 block dark:hidden" />
           </Button>
 
           {user && <NotificationBell />}

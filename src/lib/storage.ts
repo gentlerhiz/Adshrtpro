@@ -959,6 +959,20 @@ export async function checkOfferwallCompletion(userId: string, network: string, 
   return result.length > 0;
 }
 
+// Dedupe by the network's own transaction ID rather than (user, offer).
+// Networks like BitcoTasks guarantee transId is unique per conversion, and it
+// stays unique even when the same user completes the same offer twice.
+export async function checkOfferwallTransaction(network: string, transactionId: string): Promise<boolean> {
+  const result = await db.select()
+    .from(offerwallCompletions)
+    .where(and(
+      eq(offerwallCompletions.network, network),
+      eq(offerwallCompletions.transactionId, transactionId)
+    ))
+    .limit(1);
+  return result.length > 0;
+}
+
 export async function recordOfferwallCompletion(userId: string, network: string, offerId: string, transactionId: string, payout: string, ip: string): Promise<OfferwallCompletion> {
   const id = randomUUID();
   const result = await db.insert(offerwallCompletions).values(serializeDates({
@@ -1001,7 +1015,9 @@ export async function createTask(task: InsertTask): Promise<Task> {
     proofInstructions: task.proofInstructions || null,
     rewardUsd: task.rewardUsd,
     proofType: proofType as string,
+    advertiserId: task.advertiserId || null,
     isActive: task.isActive ?? true,
+    maxCompletions: task.maxCompletions ?? null,
     createdAt: new Date(),
   };
   const result = await db.insert(tasks).values(values).returning();

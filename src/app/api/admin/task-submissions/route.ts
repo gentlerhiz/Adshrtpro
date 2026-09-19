@@ -16,6 +16,7 @@ export async function GET(req: Request) {
       ...s,
       taskTitle: task?.title,
       taskReward: task?.rewardUsd,
+      advertiserId: task?.advertiserId ?? null,
       userEmail: user?.email,
     };
   }));

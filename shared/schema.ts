@@ -398,6 +398,7 @@ export const tasks = pgTable("tasks", {
   proofInstructions: text("proof_instructions"),
   rewardUsd: text("reward_usd").notNull(), // USD amount as string
   proofType: text("proof_type").notNull(), // screenshot, link, username
+  advertiserId: text("advertiser_id"), // Advertiser this task belongs to; null for legacy tasks
   isActive: boolean("is_active").default(true),
   maxCompletions: integer("max_completions"), // null means unlimited
   completedCount: integer("completed_count").default(0),
@@ -412,6 +413,7 @@ export const insertTaskSchema = createInsertSchema(tasks).pick({
   proofInstructions: true,
   rewardUsd: true,
   proofType: true,
+  advertiserId: true,
   isActive: true,
   maxCompletions: true,
 }).extend({

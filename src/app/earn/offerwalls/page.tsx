@@ -15,6 +15,13 @@ const OFFERWALL_CONFIG = {
     name: "AdBlueMedia",
     description: "High-paying offers and downloads",
     color: "bg-purple-500",
+    type: "api" as const,
+  },
+  bitcotasks: {
+    name: "BitcoTasks",
+    description: "Offers, surveys and tasks with instant rewards",
+    color: "bg-amber-500",
+    type: "iframe" as const,
   },
 };
 
@@ -124,6 +131,57 @@ function OfferwallOffers({ userId, network }: { userId: string; network: "adblue
   );
 }
 
+function OfferwallFrame({ network }: { network: string }) {
+  const [url, setUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchUrl = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch(`/api/offerwalls/${network}/url`, {
+          credentials: "include",
+        });
+        if (!response.ok) throw new Error("Failed to load offerwall");
+        const data = await response.json();
+        setUrl(data.url);
+      } catch {
+        setUrl(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchUrl();
+  }, [network]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (!url) {
+    return (
+      <div className="text-center py-8 text-muted-foreground">
+        This offerwall is unavailable right now. Please check back later.
+      </div>
+    );
+  }
+
+  return (
+    <iframe
+      src={url}
+      title={`${network} offerwall`}
+      className="w-full rounded-md border"
+      style={{ height: 800 }}
+      scrolling="yes"
+      frameBorder="0"
+    />
+  );
+}
+
 interface OfferwallSetting {
   network: string;
   isEnabled: boolean;
@@ -191,7 +249,14 @@ export default function OfferwallsPage() {
           </CardContent>
         </Card>
       ) : (
-        <Tabs defaultValue="adbluemedia" className="space-y-6">
+        <Tabs
+          defaultValue={
+            Object.keys(OFFERWALL_CONFIG).find(key =>
+              enabledOfferwalls.some(o => o.network === key)
+            )
+          }
+          className="space-y-6"
+        >
           <TabsList className="w-auto">
             {Object.entries(OFFERWALL_CONFIG).map(([key, config]) => {
               const isEnabled = enabledOfferwalls.some(o => o.network === key);
@@ -226,7 +291,11 @@ export default function OfferwallsPage() {
                     <p className="text-sm text-muted-foreground mb-4">
                       Complete offers from {config.name} to earn USD. Rewards are credited automatically.
                     </p>
-                    <OfferwallOffers userId={user.id} network={key as "adbluemedia"} />
+                    {config.type === "iframe" ? (
+                      <OfferwallFrame network={key} />
+                    ) : (
+                      <OfferwallOffers userId={user.id} network={key as "adbluemedia"} />
+                    )}
                   </CardContent>
                 </Card>
               </TabsContent>

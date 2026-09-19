@@ -46,6 +46,15 @@ const OFFERWALL_INFO = {
       apiKey: "API Key (required for offers feed)",
     },
   },
+  bitcotasks: {
+    name: "BitcoTasks",
+    description: "Offerwall with offers, surveys, PTC and tasks",
+    setupUrl: "https://bitcotasks.com/documentations",
+    fields: {
+      userId: "Not used (Sub ID is the AdShrtPro user ID)",
+      apiKey: "API Key (required - used in the offerwall iframe URL)",
+    },
+  },
   faucetpay: {
     name: "FaucetPay",
     description: "Crypto micropayment processor with offerwalls",
@@ -149,6 +158,13 @@ export default function AdminOfferwallsPage() {
             in your offerwall provider&apos;s dashboard to credit users automatically. The postback URL format will be:
             <code className="block mt-2 p-2 bg-muted rounded text-sm">
               https://yourdomain.com/api/postback/[network]?user_id=&#123;&#123;user_id&#125;&#125;&amp;amount=&#123;&#123;amount&#125;&#125;
+            </code>
+            <span className="block mt-2">
+              BitcoTasks is the exception &mdash; it posts to its own webhook path and signs
+              each callback, so set its Postback URL to:
+            </span>
+            <code className="block mt-2 p-2 bg-muted rounded text-sm">
+              https://adshrtpro.com/wh/bitcotasks
             </code>
           </AlertDescription>
         </Alert>
