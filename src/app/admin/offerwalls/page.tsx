@@ -52,7 +52,7 @@ const OFFERWALL_INFO = {
     setupUrl: "https://bitcotasks.com/documentations",
     fields: {
       userId: "Not used (Sub ID is the AdShrtPro user ID)",
-      apiKey: "API Key (required - used in the offerwall iframe URL)",
+      apiKey: "API Key (required - used in the offerwall URL)",
     },
   },
   faucetpay: {

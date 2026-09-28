@@ -21,7 +21,7 @@ const OFFERWALL_CONFIG = {
     name: "BitcoTasks",
     description: "Offers, surveys and tasks with instant rewards",
     color: "bg-amber-500",
-    type: "iframe" as const,
+    type: "newtab" as const,
   },
 };
 
@@ -131,7 +131,15 @@ function OfferwallOffers({ userId, network }: { userId: string; network: "adblue
   );
 }
 
-function OfferwallFrame({ network }: { network: string }) {
+// Opens the offerwall in a new tab rather than an iframe. BitcoTasks keeps its
+// session (and captcha firewall state) in a PHPSESSID cookie; inside an iframe
+// that cookie is third-party, which WebKit blocks outright - so the wall loops
+// back to the captcha on every iOS browser and on desktop Safari. In its own tab
+// the cookie is first-party and works everywhere.
+//
+// The URL is fetched up front so the tap lands on a real link: iOS blocks
+// window.open() when it runs after an await instead of directly in the gesture.
+function OfferwallLink({ network, name }: { network: string; name: string }) {
   const [url, setUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -170,15 +178,21 @@ function OfferwallFrame({ network }: { network: string }) {
     );
   }
 
+  // rel="noopener" without "noreferrer" so the offerwall still sees our site as
+  // the referrer, the same as the documented window.open() integration.
   return (
-    <iframe
-      src={url}
-      title={`${network} offerwall`}
-      className="w-full rounded-md border"
-      style={{ height: 800 }}
-      scrolling="yes"
-      frameBorder="0"
-    />
+    <div className="flex flex-col items-center gap-3 py-8 text-center">
+      <Button asChild size="lg" data-testid={`button-open-offerwall-${network}`}>
+        <a href={url} target="_blank" rel="noopener">
+          Open {name}
+          <ExternalLink className="ml-2 h-4 w-4" />
+        </a>
+      </Button>
+      <p className="text-sm text-muted-foreground max-w-md">
+        Opens in a new tab. Keep this tab open &mdash; rewards are credited to your
+        balance here once a task is completed.
+      </p>
+    </div>
   );
 }
 
@@ -291,8 +305,8 @@ export default function OfferwallsPage() {
                     <p className="text-sm text-muted-foreground mb-4">
                       Complete offers from {config.name} to earn USD. Rewards are credited automatically.
                     </p>
-                    {config.type === "iframe" ? (
-                      <OfferwallFrame network={key} />
+                    {config.type === "newtab" ? (
+                      <OfferwallLink network={key} name={config.name} />
                     ) : (
                       <OfferwallOffers userId={user.id} network={key as "adbluemedia"} />
                     )}

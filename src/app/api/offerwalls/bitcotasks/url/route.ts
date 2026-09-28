@@ -2,9 +2,10 @@ import { NextResponse } from "next/server";
 import * as storage from "@/lib/storage";
 import { requireAuth } from "@/lib/server/auth";
 
-// Build the BitcoTasks offerwall iframe URL for the signed-in user.
+// Build the BitcoTasks offerwall URL for the signed-in user. The client opens it
+// in a new tab (see earn/offerwalls/page.tsx for why not an iframe).
 // Format: https://bitcotasks.com/offerwall/{API_KEY}/{USER_ID}
-// The API key is public by design here (it ships in the iframe src); the
+// The API key is public by design here (it ships in the offerwall link); the
 // secret key is never returned - it is only used to verify postbacks.
 export async function GET(req: Request) {
   const authResult = await requireAuth(req);
